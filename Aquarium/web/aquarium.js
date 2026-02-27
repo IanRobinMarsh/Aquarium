@@ -63,7 +63,7 @@ connectWS();
 
 // ── Scene elements ─────────────────────────────────────────────────────────
 
-let rocks=[], seagrass=[], kelp=[], anemones=[], coralDefs=[], starfish=[], plankton=[], urchins=[], clams=[], crabs=[], marineSnow=[];
+let rocks=[], seagrass=[], kelp=[], anemones=[], coralDefs=[], starfish=[], plankton=[], urchins=[], clams=[], crabs=[], marineSnow=[], seahorses=[], bioParticles=[];
 
 function buildScene() {
   // Rocks
@@ -171,6 +171,35 @@ function buildScene() {
       r: 11+Math.random()*10,
       col: ['#8A3A1A','#A04828','#6A2210'][Math.random()*3|0] });
   }
+
+  // Seahorses (anchored near seagrass blades)
+  seahorses = [];
+  for (let i=0; i<Math.max(2,W/550|0); i++) {
+    const sg = seagrass[Math.random()*seagrass.length|0];
+    seahorses.push({
+      x: sg ? sg.x+(Math.random()-0.5)*35 : 100+Math.random()*(W-200),
+      y: H-(48+Math.random()*28),
+      size: 15+Math.random()*9,
+      col: ['#C87820','#3A8870','#9A3A80'][Math.random()*3|0],
+      phase: Math.random()*Math.PI*2,
+      facing: Math.random()<0.5 ? 1 : -1,
+    });
+  }
+
+  // Bioluminescent deep-water particles
+  bioParticles = Array.from({length:38}, ()=>({
+    x: Math.random()*W,
+    y: H*0.5+Math.random()*H*0.42,
+    r: 0.9+Math.random()*2.0,
+    vx: (Math.random()-0.5)*0.04,
+    vy: (Math.random()-0.5)*0.03,
+    ph: Math.random()*Math.PI*2,
+    col: Math.random()<0.6 ? '#00D8B0' : '#3878FF',
+    gr: 9+Math.random()*14,
+  }));
+
+  // Ambient fish school
+  buildFishSchool();
 }
 buildScene();
 
@@ -204,6 +233,35 @@ function resetShark() {
   shark.vx    = shark.flip*(0.38+Math.random()*0.28);
   shark.y     = H*(0.18+Math.random()*0.52);
   shark.t     = 0;
+}
+
+// Ambient fish school (decorative mid-water silhouettes)
+const fishSchool = { cx:0, cy:0, vx:0.38, vy:0.04, dir:0, turnT:5, speed:0.36, members:[] };
+function buildFishSchool() {
+  fishSchool.cx    = W*(0.25+Math.random()*0.5);
+  fishSchool.cy    = H*(0.22+Math.random()*0.44);
+  fishSchool.dir   = Math.random()*Math.PI*2;
+  fishSchool.speed = 0.28+Math.random()*0.22;
+  fishSchool.vx    = Math.cos(fishSchool.dir)*fishSchool.speed;
+  fishSchool.vy    = Math.sin(fishSchool.dir)*fishSchool.speed;
+  fishSchool.turnT = 5+Math.random()*9;
+  fishSchool.members = Array.from({length:28}, ()=>({
+    ox: (Math.random()-0.5)*112, oy: (Math.random()-0.5)*48,
+    px: fishSchool.cx+(Math.random()-0.5)*112,
+    py: fishSchool.cy+(Math.random()-0.5)*48,
+    ph: Math.random()*Math.PI*2, sz: 4.5+Math.random()*3,
+  }));
+}
+
+// Whale shark (enormous, very rare, faint deep silhouette)
+const whaleshark = { x:-660, y:0, vx:0.16, flip:1, t:0, delay:55 };
+function resetWhaleshark() {
+  whaleshark.delay = 70+Math.random()*100;
+  whaleshark.flip  = Math.random()<0.5 ? 1 : -1;
+  whaleshark.x     = whaleshark.flip>0 ? -680 : W+680;
+  whaleshark.vx    = whaleshark.flip*(0.13+Math.random()*0.09);
+  whaleshark.y     = H*(0.48+Math.random()*0.28);
+  whaleshark.t     = 0;
 }
 
 // ── Background + light rays ────────────────────────────────────────────────
@@ -789,6 +847,241 @@ function drawFins(shapes) {
   for (const {draw,col,a} of shapes) {
     ctx.save(); ctx.globalAlpha*=a; ctx.fillStyle=col; draw(); ctx.fill(); ctx.restore();
   }
+}
+
+// ── Bioluminescent particles ────────────────────────────────────────────────
+
+function tickBioParticles(dt) {
+  const now=performance.now();
+  for (const p of bioParticles) {
+    p.x+=p.vx+Math.sin(p.ph+now*0.00028)*0.03;
+    p.y+=p.vy+Math.cos(p.ph*0.72+now*0.00022)*0.022;
+    p.ph+=dt*0.38;
+    if (p.y<H*0.46) p.y=H*0.96+Math.random()*H*0.03;
+    if (p.y>H+4)    p.y=H*0.5;
+    if (p.x<-5) p.x=W+5; if (p.x>W+5) p.x=-5;
+  }
+}
+function drawBioParticles(t) {
+  for (const p of bioParticles) {
+    const pulse=0.45+Math.sin(t*2.4+p.ph)*0.35;
+    ctx.save();
+    glow(p.col, p.gr*pulse);
+    ctx.globalAlpha=0.16*pulse;
+    ctx.fillStyle=p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r*2.2,0,Math.PI*2); ctx.fill();
+    clearGlow();
+    ctx.globalAlpha=0.55*pulse;
+    ctx.fillStyle=p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
+
+// ── Ambient fish school ────────────────────────────────────────────────────
+
+function tickFishSchool(dt) {
+  fishSchool.turnT-=dt;
+  if (fishSchool.turnT<=0) {
+    fishSchool.dir+=(Math.random()-0.5)*1.55;
+    fishSchool.speed=0.26+Math.random()*0.24;
+    fishSchool.turnT=5+Math.random()*10;
+  }
+  // Soft boundary nudge
+  if (fishSchool.cx<W*0.1)  fishSchool.dir+=(0-fishSchool.dir)*0.05;
+  if (fishSchool.cx>W*0.9)  fishSchool.dir+=(Math.PI-fishSchool.dir)*0.05;
+  if (fishSchool.cy<H*0.1)  fishSchool.vy+=0.04;
+  if (fishSchool.cy>H*0.7)  fishSchool.vy-=0.04;
+  // Smooth velocity towards target direction
+  fishSchool.vx+=(Math.cos(fishSchool.dir)*fishSchool.speed - fishSchool.vx)*0.04;
+  fishSchool.vy+=(Math.sin(fishSchool.dir)*fishSchool.speed - fishSchool.vy)*0.04;
+  fishSchool.cx+=fishSchool.vx*60*dt;
+  fishSchool.cy+=fishSchool.vy*60*dt;
+  for (const m of fishSchool.members) {
+    const lag=0.04+Math.sin(m.ph)*0.015;
+    m.px+=(fishSchool.cx+m.ox-m.px)*lag;
+    m.py+=(fishSchool.cy+m.oy-m.py)*lag;
+    m.ph+=dt*0.7;
+  }
+}
+function drawFishSchool(t) {
+  const ang=Math.atan2(fishSchool.vy,fishSchool.vx);
+  ctx.save();
+  for (const m of fishSchool.members) {
+    ctx.save();
+    ctx.translate(m.px,m.py);
+    ctx.rotate(ang+Math.sin(m.ph)*0.1);
+    const a=0.26+(1-m.py/H)*0.2;
+    ctx.globalAlpha=a;
+    ctx.fillStyle='#14263A';
+    // Body
+    ctx.beginPath(); ctx.ellipse(0,0,m.sz,m.sz*0.4,0,0,Math.PI*2); ctx.fill();
+    // Forked tail
+    ctx.beginPath();
+    ctx.moveTo(-m.sz*0.85,0);
+    ctx.lineTo(-m.sz*1.45,-m.sz*0.56);
+    ctx.lineTo(-m.sz*1.3,0);
+    ctx.lineTo(-m.sz*1.45,m.sz*0.56);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore(); ctx.globalAlpha=1;
+}
+
+// ── Seahorse ───────────────────────────────────────────────────────────────
+
+function drawSeahorse(sh, t) {
+  const s=sh.size;
+  const sway=Math.sin(t*1.1+sh.phase)*4.5;
+  const bob =Math.cos(t*0.85+sh.phase)*2.5;
+  ctx.save();
+  ctx.translate(sh.x+sway, sh.y+bob);
+  ctx.scale(sh.facing, 1);
+
+  // Coiled tail
+  ctx.strokeStyle=sh.col; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.lineWidth=s*0.22; ctx.globalAlpha=0.88;
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(s*0.32,s*0.28,s*0.5,s*0.55,s*0.3,s*0.72);
+  ctx.bezierCurveTo(s*0.1,s*0.88,-s*0.2,s*0.78,-s*0.18,s*0.6);
+  ctx.stroke();
+
+  // Body column
+  ctx.lineWidth=s*0.26; ctx.strokeStyle=sh.col; ctx.globalAlpha=0.9;
+  ctx.beginPath();
+  ctx.moveTo(0,-s*0.62); ctx.bezierCurveTo(s*0.05,-s*0.3,s*0.04,-s*0.1,0,0); ctx.stroke();
+
+  // Bony segment rings
+  ctx.strokeStyle=darker(sh.col,28); ctx.lineWidth=0.85; ctx.globalAlpha=0.48;
+  for (let i=0;i<5;i++) {
+    const ry=-s*0.56+i*s*0.13, rw=s*(0.14-i*0.012);
+    ctx.beginPath(); ctx.moveTo(-rw,ry); ctx.lineTo(rw,ry); ctx.stroke();
+  }
+
+  // Fluttering dorsal fin
+  ctx.globalAlpha=0.52; ctx.fillStyle=lighter(sh.col,32);
+  const dfx=s*0.36+Math.sin(t*9+sh.phase)*s*0.06;
+  ctx.beginPath();
+  ctx.moveTo(s*0.13,-s*0.52);
+  ctx.bezierCurveTo(dfx,-s*0.6,dfx+s*0.04,-s*0.68,s*0.15,-s*0.68);
+  ctx.bezierCurveTo(s*0.06,-s*0.64,s*0.06,-s*0.58,s*0.13,-s*0.52);
+  ctx.fill();
+
+  // Neck/throat pouch
+  const hg=ctx.createRadialGradient(s*0.04,-s*0.72,0,0,-s*0.68,s*0.24);
+  hg.addColorStop(0,lighter(sh.col,24)); hg.addColorStop(1,sh.col);
+  ctx.fillStyle=hg; ctx.globalAlpha=0.92;
+  ctx.beginPath(); ctx.ellipse(s*0.06,-s*0.7,s*0.17,s*0.22,0.28,0,Math.PI*2); ctx.fill();
+
+  // Head
+  ctx.fillStyle=lighter(sh.col,14);
+  ctx.beginPath();
+  ctx.moveTo(0,-s*0.86);
+  ctx.bezierCurveTo(-s*0.14,-s*0.92,-s*0.2,-s*1.04,-s*0.14,-s*1.12);
+  ctx.bezierCurveTo(-s*0.06,-s*1.2,s*0.1,-s*1.18,s*0.14,-s*1.08);
+  ctx.bezierCurveTo(s*0.18,-s*0.98,s*0.16,-s*0.88,s*0.08,-s*0.84);
+  ctx.bezierCurveTo(s*0.04,-s*0.82,s*0.02,-s*0.84,0,-s*0.86);
+  ctx.fill();
+
+  // Snout (tube)
+  ctx.save(); ctx.strokeStyle=sh.col; ctx.lineWidth=s*0.1; ctx.lineCap='round'; ctx.globalAlpha=0.9;
+  ctx.beginPath(); ctx.moveTo(-s*0.06,-s*1.08); ctx.lineTo(-s*0.28,-s*1.24); ctx.stroke(); ctx.restore();
+
+  // Coronet spines
+  ctx.fillStyle=lighter(sh.col,20); ctx.globalAlpha=0.72;
+  for (let i=0;i<4;i++) {
+    const cx=s*(-0.04+i*0.044);
+    ctx.beginPath(); ctx.moveTo(cx,-s*1.17);
+    ctx.lineTo(cx+s*0.015,-s*1.27); ctx.lineTo(cx+s*0.03,-s*1.17);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Eye
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#DDD'; ctx.beginPath(); ctx.arc(-s*0.01,-s*1.03,s*0.068,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=lighter(sh.col,35); ctx.beginPath(); ctx.arc(-s*0.01,-s*1.03,s*0.04,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*0.004,-s*1.03,s*0.028,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(-s*0.016,-s*1.046,s*0.02,0,Math.PI*2); ctx.fill();
+
+  // Pectoral fin
+  ctx.fillStyle=lighter(sh.col,22); ctx.globalAlpha=0.48;
+  ctx.beginPath(); ctx.ellipse(s*0.2,-s*0.62,s*0.14,s*0.08,-0.4,0,Math.PI*2); ctx.fill();
+
+  ctx.restore(); ctx.globalAlpha=1;
+}
+
+// ── Whale shark ────────────────────────────────────────────────────────────
+
+function tickWhaleshark(dt) {
+  whaleshark.t+=dt;
+  if (whaleshark.delay>0) { whaleshark.delay-=dt; return; }
+  whaleshark.x+=whaleshark.vx*60*dt;
+  whaleshark.y+=Math.sin(whaleshark.t*0.18)*0.22;
+  if ((whaleshark.flip>0&&whaleshark.x>W+700)||(whaleshark.flip<0&&whaleshark.x<-700)) resetWhaleshark();
+}
+function drawWhaleshark() {
+  if (whaleshark.delay>0) return;
+  const {x,y,flip,t}=whaleshark, s=200;
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(flip,1);
+  ctx.globalAlpha=0.14;
+  ctx.rotate(Math.sin(t*0.85)*0.025);
+
+  const col='#1C3048';
+
+  // Tail (heterocercal, large)
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.8,s*0.02);
+  ctx.bezierCurveTo(-s*0.9,-s*0.06,-s*1.0,-s*0.3,-s*1.08,-s*0.42);
+  ctx.bezierCurveTo(-s*0.96,-s*0.24,-s*0.85,-s*0.08,-s*0.8,s*0.02);
+  ctx.bezierCurveTo(-s*0.86,s*0.06,-s*0.96,s*0.22,-s*1.02,s*0.3);
+  ctx.bezierCurveTo(-s*0.94,s*0.18,-s*0.84,s*0.07,-s*0.8,s*0.02);
+  ctx.fill();
+
+  // Body — broad, rounded, whale-shark shape
+  ctx.beginPath();
+  ctx.moveTo(s*0.55,-s*0.02);
+  ctx.bezierCurveTo(s*0.46,-s*0.14,s*0.24,-s*0.24,0,-s*0.26);
+  ctx.bezierCurveTo(-s*0.34,-s*0.24,-s*0.62,-s*0.18,-s*0.8,-s*0.06);
+  ctx.bezierCurveTo(-s*0.62,s*0.2,-s*0.34,s*0.28,0,s*0.3);
+  ctx.bezierCurveTo(s*0.24,s*0.28,s*0.46,s*0.2,s*0.55,s*0.04);
+  ctx.closePath(); ctx.fill();
+
+  // Dorsal fin
+  ctx.beginPath();
+  ctx.moveTo(-s*0.05,-s*0.26);
+  ctx.bezierCurveTo(-s*0.08,-s*0.48,s*0.06,-s*0.58,s*0.14,-s*0.26);
+  ctx.closePath(); ctx.fill();
+
+  // Pectoral fins
+  ctx.beginPath();
+  ctx.moveTo(s*0.22,s*0.18);
+  ctx.bezierCurveTo(s*0.08,s*0.42,-s*0.1,s*0.56,-s*0.2,s*0.46);
+  ctx.bezierCurveTo(-s*0.1,s*0.3,s*0.06,s*0.2,s*0.22,s*0.18);
+  ctx.fill();
+
+  // Second dorsal + anal fin
+  ctx.beginPath(); ctx.moveTo(-s*0.45,-s*0.22); ctx.lineTo(-s*0.55,-s*0.36); ctx.lineTo(-s*0.65,-s*0.22); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-s*0.48,s*0.2);   ctx.lineTo(-s*0.58,s*0.34);  ctx.lineTo(-s*0.68,s*0.2);  ctx.closePath(); ctx.fill();
+
+  // Spots (distinctive whale shark pattern)
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  const spots=[
+    [0.18,-s*0.08,s*0.042],[-s*0.08,-s*0.14,s*0.038],[-s*0.28,-s*0.1,s*0.04],
+    [s*0.06,s*0.12,s*0.032],[-s*0.18,s*0.14,s*0.036],[-s*0.42,-s*0.06,s*0.04],
+    [s*0.34,-s*0.05,s*0.03],[s*0.0,-s*0.04,s*0.028],[-s*0.55,s*0.08,s*0.032],
+    [s*0.22,s*0.2,s*0.026],[-s*0.34,s*0.16,s*0.032],[s*0.12,-s*0.18,s*0.024],
+    [-s*0.62,-s*0.04,s*0.028],[-s*0.15,s*0.05,s*0.03],[s*0.4,s*0.1,s*0.022],
+    [-s*0.48,s*0.12,s*0.03],[s*0.28,-s*0.14,s*0.022],[-s*0.68,s*0.0,s*0.024],
+  ];
+  for (const [sx,sy,sr] of spots) {
+    ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.restore(); ctx.globalAlpha=1;
 }
 
 // ── Shark ──────────────────────────────────────────────────────────────────
@@ -1392,24 +1685,31 @@ function frame(now) {
 
   tickPlankton(dt);
   tickMarineSnow();
+  tickBioParticles(dt);
+  tickFishSchool(dt);
   tickTurtle(dt);
   tickManta(dt);
   tickShark(dt);
+  tickWhaleshark(dt);
   tickCrabs(dt);
 
   drawBackground(t);
   drawDepthHaze();
+  drawWhaleshark();       // faint deep silhouette, behind everything
   drawMarineSnow();
+  drawBioParticles(t);
   drawPlankton();
+  drawFishSchool(t);      // mid-water ambient school
   drawKelp(t);
   drawCoral(t);
   drawAnemones(t);
   drawSeagrass(t);
   drawSeafloor(t);
 
-  for (const u of urchins) drawSeaUrchin(u);
-  for (const c of clams)   drawClam(c, t);
-  for (const c of crabs)   drawCrab(c, t);
+  for (const u of urchins)   drawSeaUrchin(u);
+  for (const sh of seahorses) drawSeahorse(sh, t);
+  for (const c of clams)     drawClam(c, t);
+  for (const c of crabs)     drawCrab(c, t);
 
   for (const b of state.bubbles) drawBubble(b);
 
