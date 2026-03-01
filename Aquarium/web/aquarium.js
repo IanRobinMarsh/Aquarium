@@ -1277,65 +1277,74 @@ function drawTropicalFish(f, t, wb) {
   ctx.save(); ctx.translate(-s*0.62,0); ctx.rotate(tailWob*1.6);
   const tg = ctx.createLinearGradient(0,-s*0.7,0,s*0.7);
   tg.addColorStop(0,lighter(fin,25)); tg.addColorStop(1,fin);
-  ctx.fillStyle=tg; ctx.globalAlpha=0.88;
+  ctx.fillStyle=tg; ctx.globalAlpha=0.9;
   ctx.beginPath();
   ctx.moveTo(0,0);
-  ctx.bezierCurveTo(-s*0.3,-s*0.2,-s*0.8,-s*0.55,-s*0.88,-s*0.72);
-  ctx.bezierCurveTo(-s*0.7,-s*0.45,-s*0.3,-s*0.15,0,0);
-  ctx.bezierCurveTo(-s*0.3,s*0.15,-s*0.7,s*0.45,-s*0.88,s*0.72);
-  ctx.bezierCurveTo(-s*0.8,s*0.55,-s*0.3,s*0.2,0,0);
+  ctx.bezierCurveTo(-s*0.3,-s*0.2,-s*0.82,-s*0.58,-s*0.92,-s*0.78);
+  ctx.bezierCurveTo(-s*0.72,-s*0.48,-s*0.3,-s*0.15,0,0);
+  ctx.bezierCurveTo(-s*0.3,s*0.15,-s*0.72,s*0.48,-s*0.92,s*0.78);
+  ctx.bezierCurveTo(-s*0.82,s*0.58,-s*0.3,s*0.2,0,0);
   ctx.fill();
   ctx.restore();
 
-  // Body with belly gradient
-  const bg = ctx.createRadialGradient(-s*0.12,-s*0.28,0,0,s*0.08,s*0.95);
-  bg.addColorStop(0,lighter(col,55)); bg.addColorStop(0.45,col); bg.addColorStop(1,darker(col,28));
+  // Body — rounded clownfish shape
+  const bg = ctx.createRadialGradient(-s*0.12,-s*0.3,0,0,s*0.05,s*0.98);
+  bg.addColorStop(0,lighter(col,60)); bg.addColorStop(0.4,col); bg.addColorStop(1,darker(col,32));
   ctx.fillStyle=bg;
-  ctx.beginPath(); ctx.ellipse(0,0,s*0.88,s*0.72,wb*0.04,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.88,s*0.74,wb*0.04,0,Math.PI*2); ctx.fill();
 
-  // Vertical stripes (variant-based)
-  ctx.save(); ctx.globalAlpha=0.28;
-  const stripCol = f.variant%2===0 ? 'rgba(255,255,255,0.7)' : hexA(darker(col,50),0.6);
-  ctx.fillStyle=stripCol;
-  for (let i=0; i<2; i++) {
-    ctx.beginPath();
-    ctx.ellipse(s*0.12-i*s*0.48, 0, s*0.1, s*0.65, 0, 0, Math.PI*2);
-    ctx.fill();
+  // Clownfish: 3 bold white bands with black outline (clipped to body)
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.9,s*0.76,wb*0.04,0,Math.PI*2); ctx.clip();
+  const bandX = [s*0.42, -s*0.04, -s*0.48];
+  const bandW = [s*0.11, s*0.13, s*0.09];
+  // Black outlines first
+  ctx.fillStyle='rgba(0,0,0,0.72)';
+  for (let i=0; i<3; i++) {
+    ctx.beginPath(); ctx.ellipse(bandX[i],0,bandW[i]+s*0.04,s*0.8,0,0,Math.PI*2); ctx.fill();
+  }
+  // White fill
+  ctx.fillStyle='rgba(255,255,255,0.94)';
+  for (let i=0; i<3; i++) {
+    ctx.beginPath(); ctx.ellipse(bandX[i],0,bandW[i],s*0.74,0,0,Math.PI*2); ctx.fill();
   }
   ctx.restore();
 
-  // Dorsal fin with rays
-  ctx.save(); ctx.globalAlpha=0.78;
-  ctx.fillStyle=fin;
+  // Dorsal fin — tall spiny
+  ctx.save(); ctx.globalAlpha=0.85;
+  const dg = ctx.createLinearGradient(0,-s*0.72,0,-s*1.38);
+  dg.addColorStop(0,col); dg.addColorStop(1,lighter(fin,22));
+  ctx.fillStyle=dg;
   ctx.beginPath();
-  ctx.moveTo(-s*0.28,-s*0.7);
-  ctx.bezierCurveTo(-s*0.08,-s*1.28,s*0.28,-s*1.22,s*0.44,-s*0.7);
+  ctx.moveTo(-s*0.52,-s*0.72);
+  ctx.bezierCurveTo(-s*0.28,-s*1.38,s*0.12,-s*1.42,s*0.44,-s*0.72);
   ctx.closePath(); ctx.fill();
-  ctx.strokeStyle=darker(fin,30); ctx.lineWidth=0.7; ctx.globalAlpha=0.38;
-  for (let i=0; i<4; i++) {
-    const fx = -s*0.22+i*s*0.2;
-    ctx.beginPath(); ctx.moveTo(fx,-s*0.7); ctx.lineTo(fx-s*0.02,-s*(0.95+i*0.06)); ctx.stroke();
+  // Spine rays
+  ctx.strokeStyle=darker(fin,38); ctx.lineWidth=0.9; ctx.globalAlpha=0.52;
+  for (let i=0; i<5; i++) {
+    const fx = -s*0.44+i*s*0.22;
+    ctx.beginPath(); ctx.moveTo(fx,-s*0.72); ctx.lineTo(fx-s*0.04,-s*(1.04+i*0.07)); ctx.stroke();
   }
   ctx.restore();
 
   // Pectoral fin
-  ctx.fillStyle=hexA(fin,0.52);
-  ctx.beginPath(); ctx.ellipse(s*0.08,s*0.2,s*0.36,s*0.2,-0.42+wb*0.08,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=hexA(fin,0.55);
+  ctx.beginPath(); ctx.ellipse(s*0.1,s*0.22,s*0.36,s*0.2,-0.4+wb*0.08,0,Math.PI*2); ctx.fill();
 
-  // Anal fin (bottom)
-  ctx.save(); ctx.globalAlpha=0.62;
+  // Anal fin (bottom) — matches dorsal orange with white band hint
+  ctx.save(); ctx.globalAlpha=0.72;
   ctx.fillStyle=fin;
   ctx.beginPath();
-  ctx.moveTo(-s*0.08,s*0.68);
-  ctx.bezierCurveTo(-s*0.08,s*1.08,s*0.22,s*1.02,s*0.32,s*0.68);
+  ctx.moveTo(-s*0.2,s*0.7);
+  ctx.bezierCurveTo(-s*0.14,s*1.14,s*0.22,s*1.08,s*0.34,s*0.7);
   ctx.closePath(); ctx.fill();
   ctx.restore();
 
-  drawEye(s*0.5,-s*0.12,s*0.2,'#3A6A3A');
+  drawEye(s*0.5,-s*0.12,s*0.2,'#1A3A1A');
 
   // Mouth
-  ctx.strokeStyle=darker(col,30); ctx.lineWidth=1;
-  ctx.beginPath(); ctx.arc(s*0.83,s*0.06,s*0.07,0,Math.PI*0.85); ctx.stroke();
+  ctx.strokeStyle=darker(col,30); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(s*0.84,s*0.07,s*0.07,0,Math.PI*0.85); ctx.stroke();
 }
 
 // ── DNS: slim silver sardine ───────────────────────────────────────────────
@@ -1397,18 +1406,21 @@ function drawBarracuda(f, t, wb) {
   ctx.fillStyle=hexA(fin,0.85);
   ctx.beginPath();
   ctx.moveTo(0,s*0.04);
-  ctx.lineTo(-s*0.68,-s*0.44); ctx.lineTo(-s*0.28,0); ctx.lineTo(-s*0.68,s*0.44);
+  ctx.lineTo(-s*0.72,-s*0.48); ctx.lineTo(-s*0.28,0); ctx.lineTo(-s*0.72,s*0.48);
   ctx.closePath(); ctx.fill();
   ctx.restore();
 
-  // Body — elongated, pointed
-  const bg = ctx.createLinearGradient(0,-s*0.2,0,s*0.2);
-  bg.addColorStop(0,lighter(col,18)); bg.addColorStop(0.35,col); bg.addColorStop(1,darker(col,28));
+  // Body — elongated, pointed with counter-shading
+  const bg = ctx.createLinearGradient(0,-s*0.21,0,s*0.21);
+  bg.addColorStop(0,darker(col,22));       // dark dorsal
+  bg.addColorStop(0.28,col);
+  bg.addColorStop(0.75,lighter(col,18));   // lighter mid
+  bg.addColorStop(1,'rgba(205,225,240,0.92)'); // silver belly
   ctx.fillStyle=bg;
   ctx.beginPath();
   ctx.moveTo(s*1.08,0);
-  ctx.bezierCurveTo(s*0.72,-s*0.17,-s*0.28,-s*0.21,-s,s*0.04);
-  ctx.bezierCurveTo(-s*0.28,s*0.21,s*0.72,s*0.17,s*1.08,0);
+  ctx.bezierCurveTo(s*0.72,-s*0.18,-s*0.28,-s*0.22,-s,s*0.04);
+  ctx.bezierCurveTo(-s*0.28,s*0.22,s*0.72,s*0.18,s*1.08,0);
   ctx.fill();
 
   // Scale lines
@@ -1420,30 +1432,42 @@ function drawBarracuda(f, t, wb) {
   ctx.restore();
 
   // Metallic dorsal sheen
-  ctx.save(); ctx.globalAlpha=0.11;
-  const sheen=ctx.createLinearGradient(0,-s*0.18,0,s*0.18);
-  sheen.addColorStop(0,'rgba(190,215,242,0.9)'); sheen.addColorStop(0.5,'rgba(170,200,228,0)');
-  sheen.addColorStop(1,'rgba(190,215,242,0.6)');
+  ctx.save(); ctx.globalAlpha=0.13;
+  const sheen=ctx.createLinearGradient(0,-s*0.18,0,0);
+  sheen.addColorStop(0,'rgba(190,215,242,0.9)'); sheen.addColorStop(1,'rgba(170,200,228,0)');
   ctx.fillStyle=sheen;
-  ctx.beginPath(); ctx.ellipse(0,0,s*1.06,s*0.19,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,-s*0.05,s*1.06,s*0.14,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // Two dorsal fins (barracuda style)
-  ctx.save(); ctx.globalAlpha=0.68;
+  // Two dorsal fins
+  ctx.save(); ctx.globalAlpha=0.7;
   ctx.fillStyle=fin;
-  ctx.beginPath(); ctx.moveTo(s*0.22,-s*0.19); ctx.lineTo(s*0.06,-s*0.52); ctx.lineTo(-s*0.18,-s*0.19); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-s*0.38,-s*0.19); ctx.lineTo(-s*0.54,-s*0.46); ctx.lineTo(-s*0.7,-s*0.19); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(s*0.22,-s*0.2); ctx.lineTo(s*0.06,-s*0.54); ctx.lineTo(-s*0.18,-s*0.2); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-s*0.38,-s*0.2); ctx.lineTo(-s*0.54,-s*0.48); ctx.lineTo(-s*0.7,-s*0.2); ctx.closePath(); ctx.fill();
   ctx.restore();
 
   // Pectoral
   ctx.fillStyle=hexA(fin,0.38);
   ctx.beginPath(); ctx.ellipse(s*0.22,s*0.09,s*0.24,s*0.1,-0.3+tw,0,Math.PI*2); ctx.fill();
 
-  drawEye(s*0.8,-s*0.05,s*0.12,'#AA2020');
+  drawEye(s*0.8,-s*0.05,s*0.12,'#CC1A1A');
 
-  // Menacing thin mouth line
-  ctx.strokeStyle='#223'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(s*1.06,-s*0.02); ctx.lineTo(s*0.84,s*0.02); ctx.stroke();
+  // Jaw line
+  ctx.strokeStyle=darker(col,40); ctx.lineWidth=1.1;
+  ctx.beginPath(); ctx.moveTo(s*1.07,s*0.01); ctx.lineTo(s*0.82,s*0.05); ctx.stroke();
+
+  // Teeth — small white triangles along upper jaw
+  ctx.save(); ctx.fillStyle='rgba(235,242,248,0.92)';
+  const nT=5;
+  for (let i=0; i<nT; i++) {
+    const tx = s*1.0 - i*s*0.052;
+    ctx.beginPath();
+    ctx.moveTo(tx, -s*0.01);
+    ctx.lineTo(tx + s*0.022, s*0.055);
+    ctx.lineTo(tx + s*0.046, -s*0.01);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
 }
 
 // ── TLS: elegant round angelfish ─────────────────────────────────────────
@@ -1452,81 +1476,135 @@ function drawAngelfish(f, t, wb) {
   const s=f.size, col=f.color, fin=f.fin_color;
   const tw = wb*0.1;
 
-  // Long trailing fins
-  ctx.save(); ctx.globalAlpha=0.5; ctx.fillStyle=fin;
+  // Long trailing streamers — wider, fade to transparent
+  ctx.save();
+  const sg = ctx.createLinearGradient(-s*0.28,0,-s*1.5,0);
+  sg.addColorStop(0,hexA(fin,0.7)); sg.addColorStop(1,hexA(fin,0.05));
+  ctx.fillStyle=sg;
   // Top streamer
+  ctx.globalAlpha=0.7;
   ctx.beginPath();
-  ctx.moveTo(-s*0.28,-s*0.78);
-  ctx.bezierCurveTo(-s*0.72,-s*1.38+tw*s,-s*1.15,-s*1.12,-s*0.95,-s*0.6);
-  ctx.bezierCurveTo(-s*0.65,-s*0.5,-s*0.38,-s*0.6,-s*0.28,-s*0.78);
+  ctx.moveTo(-s*0.28,-s*0.86);
+  ctx.bezierCurveTo(-s*0.82,-s*1.55+tw*s,-s*1.45,-s*1.3,-s*1.22,-s*0.7);
+  ctx.bezierCurveTo(-s*0.82,-s*0.52,-s*0.44,-s*0.66,-s*0.28,-s*0.86);
   ctx.fill();
   // Bottom streamer
   ctx.beginPath();
-  ctx.moveTo(-s*0.28,s*0.78);
-  ctx.bezierCurveTo(-s*0.72,s*1.38-tw*s,-s*1.15,s*1.12,-s*0.95,s*0.6);
-  ctx.bezierCurveTo(-s*0.65,s*0.5,-s*0.38,s*0.6,-s*0.28,s*0.78);
+  ctx.moveTo(-s*0.28,s*0.86);
+  ctx.bezierCurveTo(-s*0.82,s*1.55-tw*s,-s*1.45,s*1.3,-s*1.22,s*0.7);
+  ctx.bezierCurveTo(-s*0.82,s*0.52,-s*0.44,s*0.66,-s*0.28,s*0.86);
   ctx.fill();
   ctx.restore();
 
-  // Body — round disc
-  const bg = ctx.createRadialGradient(-s*0.1,-s*0.22,0,0,0,s);
-  bg.addColorStop(0,lighter(col,65)); bg.addColorStop(0.48,col); bg.addColorStop(1,darker(col,18));
+  // Body — tall disc (angelfish are very tall relative to length)
+  const bg = ctx.createRadialGradient(-s*0.1,-s*0.3,0,0,0,s*1.04);
+  bg.addColorStop(0,lighter(col,72)); bg.addColorStop(0.4,col); bg.addColorStop(1,darker(col,24));
   ctx.fillStyle=bg;
-  ctx.beginPath(); ctx.ellipse(0,0,s*0.8,s*0.84,tw*0.08,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.72,s*0.96,tw*0.08,0,Math.PI*2); ctx.fill();
 
-  // Body stripes
-  ctx.save(); ctx.globalAlpha=0.18;
+  // Bold dark vertical stripes (clipped to body)
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.74,s*0.98,tw*0.08,0,Math.PI*2); ctx.clip();
+  const stripeX = [s*0.3, -s*0.06, -s*0.42];
+  ctx.fillStyle='rgba(18,12,38,0.42)';
   for (let i=0; i<3; i++) {
-    ctx.fillStyle='rgba(255,255,255,0.85)';
-    ctx.beginPath(); ctx.ellipse(s*(0.28-i*0.38),0,s*0.07,s*0.78,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(stripeX[i],0,s*0.085,s*1.02,0,0,Math.PI*2); ctx.fill();
   }
   ctx.restore();
 
-  // Dorsal fin — tall triangular
-  ctx.save(); ctx.globalAlpha=0.72; ctx.fillStyle=fin;
+  // Dorsal fin — very tall, sweeping
+  ctx.save(); ctx.globalAlpha=0.8;
+  const dfg = ctx.createLinearGradient(0,-s*0.9,0,-s*1.85);
+  dfg.addColorStop(0,col); dfg.addColorStop(1,lighter(fin,28));
+  ctx.fillStyle=dfg;
   ctx.beginPath();
-  ctx.moveTo(-s*0.28,-s*0.82);
-  ctx.bezierCurveTo(-s*0.1,-s*1.42,s*0.38,-s*1.35,s*0.44,-s*0.82);
+  ctx.moveTo(-s*0.44,-s*0.94);
+  ctx.bezierCurveTo(-s*0.24,-s*1.78,s*0.22,-s*1.88,s*0.44,-s*0.94);
   ctx.closePath(); ctx.fill();
+  // Fin rays
+  ctx.strokeStyle=darker(fin,28); ctx.lineWidth=0.8; ctx.globalAlpha=0.45;
+  for (let i=0; i<6; i++) {
+    const fx=-s*0.4+i*s*0.18;
+    ctx.beginPath(); ctx.moveTo(fx,-s*0.94); ctx.lineTo(fx-s*0.02,-s*(1.32+i*0.09)); ctx.stroke();
+  }
   ctx.restore();
 
   // Pectoral fin
-  ctx.fillStyle=hexA(fin,0.42);
-  ctx.beginPath(); ctx.ellipse(s*0.14,s*0.1,s*0.34,s*0.17,-0.5+tw*0.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=hexA(fin,0.44);
+  ctx.beginPath(); ctx.ellipse(s*0.14,s*0.12,s*0.34,s*0.18,-0.48+tw*0.5,0,Math.PI*2); ctx.fill();
 
-  // Anal fin
-  ctx.save(); ctx.globalAlpha=0.62; ctx.fillStyle=fin;
+  // Anal fin — tall to match dorsal
+  ctx.save(); ctx.globalAlpha=0.75; ctx.fillStyle=fin;
   ctx.beginPath();
-  ctx.moveTo(-s*0.14,s*0.8); ctx.bezierCurveTo(-s*0.1,s*1.2,s*0.24,s*1.15,s*0.3,s*0.8);
+  ctx.moveTo(-s*0.32,s*0.92);
+  ctx.bezierCurveTo(-s*0.2,s*1.5,s*0.26,s*1.44,s*0.36,s*0.92);
   ctx.closePath(); ctx.fill();
   ctx.restore();
 
-  drawEye(s*0.46,-s*0.16,s*0.18,'#4422BB');
+  drawEye(s*0.44,-s*0.2,s*0.19,'#3311AA');
 }
 
 // ── Generic / Other ───────────────────────────────────────────────────────
 
 function drawGenericFish(f, t, wb) {
+  // Deep-sea mystery fish: dark, shadowy, with a bioluminescent photophore
   const s=f.size, col=f.color, fin=f.fin_color;
   const tw = wb*0.1;
+  const deepCol = darker(col, 30);
 
-  ctx.save(); ctx.translate(-s*0.68,0); ctx.rotate(tw*1.4);
-  ctx.fillStyle=hexA(fin,0.6);
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s*0.62,-s*0.48); ctx.lineTo(-s*0.62,s*0.48); ctx.closePath(); ctx.fill();
+  // Tail — wider, menacing
+  ctx.save(); ctx.translate(-s*0.7,0); ctx.rotate(tw*1.4);
+  ctx.fillStyle=hexA(fin,0.58);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s*0.65,-s*0.52); ctx.lineTo(-s*0.52,0); ctx.lineTo(-s*0.65,s*0.52); ctx.closePath(); ctx.fill();
   ctx.restore();
 
-  const bg = ctx.createRadialGradient(-s*0.1,-s*0.14,0,0,0,s*0.9);
-  bg.addColorStop(0,lighter(col,14)); bg.addColorStop(1,darker(col,14));
+  // Body — dark, elongated, deeper belly
+  const bg = ctx.createRadialGradient(-s*0.1,-s*0.2,0,s*0.1,s*0.1,s*1.0);
+  bg.addColorStop(0,lighter(col,10)); bg.addColorStop(0.55,col); bg.addColorStop(1,darker(col,45));
   ctx.fillStyle=bg;
-  ctx.beginPath(); ctx.ellipse(0,0,s*0.86,s*0.5,tw*0.12,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.86,s*0.52,tw*0.12,0,Math.PI*2); ctx.fill();
 
-  ctx.fillStyle=hexA(fin,0.48);
-  ctx.beginPath(); ctx.moveTo(-s*0.18,-s*0.48); ctx.bezierCurveTo(s*0.0,-s*0.82,s*0.3,-s*0.78,s*0.35,-s*0.48); ctx.closePath(); ctx.fill();
+  // Scale arc texture
+  ctx.save(); ctx.strokeStyle=darker(col,22); ctx.lineWidth=0.6; ctx.globalAlpha=0.24;
+  for (let i=0; i<5; i++) {
+    const x=-s*0.55+i*s*0.27;
+    ctx.beginPath(); ctx.arc(x,0,s*0.2,Math.PI*0.28,Math.PI*0.72); ctx.stroke();
+  }
+  ctx.restore();
 
-  ctx.fillStyle=hexA(fin,0.32);
-  ctx.beginPath(); ctx.ellipse(s*0.1,s*0.14,s*0.28,s*0.16,-0.4+tw,0,Math.PI*2); ctx.fill();
+  // Dorsal fin — jagged, spiny
+  ctx.save(); ctx.globalAlpha=0.55;
+  ctx.fillStyle=fin;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.22,-s*0.5);
+  ctx.lineTo(-s*0.08,-s*0.86);
+  ctx.lineTo(s*0.04,-s*0.62);
+  ctx.lineTo(s*0.14,-s*0.94);
+  ctx.lineTo(s*0.26,-s*0.64);
+  ctx.lineTo(s*0.36,-s*0.5);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
 
-  drawEye(s*0.52,-s*0.1,s*0.15,'#556677');
+  // Pectoral fin
+  ctx.fillStyle=hexA(fin,0.34);
+  ctx.beginPath(); ctx.ellipse(s*0.1,s*0.16,s*0.28,s*0.16,-0.38+tw,0,Math.PI*2); ctx.fill();
+
+  // Bioluminescent photophore on belly — pulsing glow
+  const glowPhase = 0.62 + Math.sin(t*2.4 + f.wobble) * 0.28;
+  const px = -s*0.06, py = s*0.32;
+  ctx.save();
+  glow('rgba(100,255,160,1)', s * 1.4);
+  ctx.globalAlpha = glowPhase * 0.6;
+  ctx.fillStyle = 'rgba(140,255,190,0.85)';
+  ctx.beginPath(); ctx.arc(px, py, s*0.1, 0, Math.PI*2); ctx.fill();
+  clearGlow();
+  // Bright core
+  ctx.globalAlpha = 0.8 + Math.sin(t*2.4 + f.wobble) * 0.15;
+  ctx.fillStyle = 'rgba(220,255,235,0.98)';
+  ctx.beginPath(); ctx.arc(px, py, s*0.038, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  drawEye(s*0.52,-s*0.1,s*0.15,'#6688AA');
 }
 
 // ── UDP: detailed jellyfish ────────────────────────────────────────────────
