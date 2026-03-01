@@ -268,49 +268,72 @@ function resetWhaleshark() {
 // ── Background + light rays ────────────────────────────────────────────────
 
 function drawBackground(t) {
+  // Rich 5-stop deep-ocean gradient
   const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,   '#010C18');
-  g.addColorStop(0.45,'#031624');
-  g.addColorStop(1,   '#040F1C');
+  g.addColorStop(0,   '#01111F');  // surface — slightly lighter
+  g.addColorStop(0.15,'#020E1C');
+  g.addColorStop(0.48,'#031624');  // mid-water
+  g.addColorStop(0.78,'#030F1E');
+  g.addColorStop(1,   '#020A14');  // abyss
   ctx.fillStyle = g;
   ctx.fillRect(0,0,W,H);
 
-  // Volumetric light shafts
   ctx.save();
-  for (let i=0; i<8; i++) {
-    const cx  = W*(0.08+i*0.12) + Math.sin(t*0.12+i)*W*0.035;
-    const ang = -0.1 + Math.sin(t*0.08+i*0.9)*0.07;
-    const len = H*(0.45+Math.sin(t*0.07+i)*0.12);
-    const w   = 35+Math.sin(t*0.1+i*1.3)*18;
+
+  // Surface shimmer — thin refracting band at the very top
+  const shimG = ctx.createLinearGradient(0,0,0,H*0.028);
+  shimG.addColorStop(0,'rgba(90,195,255,0.14)');
+  shimG.addColorStop(1,'rgba(40,130,210,0)');
+  ctx.fillStyle = shimG;
+  ctx.fillRect(0,0,W,H*0.028);
+  // Surface ripple lines
+  ctx.strokeStyle='rgba(130,220,255,0.055)'; ctx.lineWidth=1;
+  for (let i=0; i<5; i++) {
+    const y = 2 + i*3 + Math.sin(t*0.32+i)*1.2;
+    ctx.beginPath();
+    for (let x=0; x<=W; x+=6)
+      ctx.lineTo(x, y + Math.sin(x*0.018 + t*0.44 + i*0.9)*1.8);
+    ctx.stroke();
+  }
+
+  // Volumetric light shafts — 11 beams, warmer near surface
+  for (let i=0; i<11; i++) {
+    const cx  = W*(0.04+i*0.095) + Math.sin(t*0.11+i*0.82)*W*0.038;
+    const ang = -0.14 + Math.sin(t*0.072+i*0.97)*0.09;
+    const len = H*(0.5+Math.sin(t*0.062+i*1.08)*0.11);
+    const w   = 22+Math.sin(t*0.092+i*1.35)*14;
     ctx.save();
     ctx.translate(cx, 0);
     ctx.rotate(ang);
     const rg = ctx.createLinearGradient(0,0,0,len);
-    rg.addColorStop(0,   'rgba(130,210,255,0.05)');
-    rg.addColorStop(0.55,'rgba(90,170,230,0.018)');
-    rg.addColorStop(1,   'rgba(60,130,190,0)');
+    rg.addColorStop(0,   'rgba(150,230,255,0.07)');
+    rg.addColorStop(0.25,'rgba(110,195,248,0.038)');
+    rg.addColorStop(0.65,'rgba(75,155,225,0.016)');
+    rg.addColorStop(1,   'rgba(50,115,185,0)');
     ctx.fillStyle = rg;
     ctx.beginPath();
     ctx.moveTo(-w/2,0); ctx.lineTo(w/2,0);
-    ctx.lineTo(w*0.75,len); ctx.lineTo(-w*0.75,len);
+    ctx.lineTo(w*0.8,len); ctx.lineTo(-w*0.8,len);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
 
-  // Caustic shimmer blobs
-  for (let i=0; i<5; i++) {
-    const cx = W*0.12+i*W*0.18+Math.sin(t*0.28+i)*45;
-    const cy = H*0.1+Math.cos(t*0.22+i*1.4)*30;
-    const r  = 70+i*35;
+  // Caustic shimmer blobs in upper water column
+  for (let i=0; i<8; i++) {
+    const cx = W*0.08+i*W*0.12+Math.sin(t*0.24+i*1.18)*52;
+    const cy = H*0.07+Math.cos(t*0.19+i*1.42)*38;
+    const r  = 55+i*28;
     const cg = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
-    cg.addColorStop(0,'rgba(100,210,255,0.022)');
+    cg.addColorStop(0,'rgba(115,225,255,0.032)');
+    cg.addColorStop(0.6,'rgba(80,175,235,0.01)');
     cg.addColorStop(1,'transparent');
-    ctx.fillStyle = cg;
+    ctx.fillStyle=cg;
     ctx.beginPath();
-    ctx.ellipse(cx,cy,r,r*0.55,t*0.08+i,0,Math.PI*2);
+    ctx.ellipse(cx,cy,r,r*0.48,t*0.075+i,0,Math.PI*2);
     ctx.fill();
   }
+
   ctx.restore();
 }
 
@@ -631,11 +654,42 @@ function clearGlow() { ctx.shadowBlur=0; }
 // ── Depth haze overlay ─────────────────────────────────────────────────────
 
 function drawDepthHaze() {
-  const g=ctx.createLinearGradient(0,H*0.5,0,H);
+  // Vertical depth gradient — bottom half gets progressively darker
+  const g=ctx.createLinearGradient(0,H*0.42,0,H);
   g.addColorStop(0,'rgba(1,10,24,0)');
-  g.addColorStop(0.62,'rgba(1,9,20,0.32)');
-  g.addColorStop(1,'rgba(0,6,16,0.60)');
-  ctx.fillStyle=g; ctx.fillRect(0,H*0.5,W,H*0.5);
+  g.addColorStop(0.55,'rgba(1,8,20,0.28)');
+  g.addColorStop(1,'rgba(0,5,14,0.68)');
+  ctx.fillStyle=g; ctx.fillRect(0,H*0.42,W,H*0.58);
+}
+
+function drawVignette() {
+  // Cinematic radial vignette — darkens the screen edges
+  const vg = ctx.createRadialGradient(W/2,H*0.5,H*0.28,W/2,H*0.5,Math.max(W,H)*0.8);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(0.65,'rgba(0,0,0,0.12)');
+  vg.addColorStop(1,'rgba(0,0,0,0.58)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+}
+
+function drawSeafloorCaustics(t) {
+  // Animated dappled-light caustic patches on the seafloor sand
+  ctx.save();
+  const n = Math.max(7, W/110|0);
+  for (let i=0; i<n; i++) {
+    const cx = (i/n)*W*1.1 - W*0.05 + Math.sin(t*0.2+i*1.72)*W*0.05;
+    const cy = H - H*0.045 - Math.abs(Math.sin(t*0.14+i*2.05))*H*0.028;
+    const rx = 30+Math.sin(t*0.28+i*0.88)*16;
+    const ry = 10+Math.sin(t*0.26+i*1.3)*5;
+    const cg = ctx.createRadialGradient(cx,cy,0,cx,cy,rx);
+    cg.addColorStop(0,'rgba(110,210,255,0.07)');
+    cg.addColorStop(0.45,'rgba(75,165,230,0.025)');
+    cg.addColorStop(1,'transparent');
+    ctx.fillStyle=cg;
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,rx,ry,t*0.055+i*0.5,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 // ── Marine snow ────────────────────────────────────────────────────────────
@@ -2015,21 +2069,22 @@ function frame(now) {
 
   drawBackground(t);
   drawDepthHaze();
-  drawWhaleshark();       // faint deep silhouette, behind everything
+  drawWhaleshark();         // faint deep silhouette, behind everything
   drawMarineSnow();
   drawBioParticles(t);
   drawPlankton();
-  drawFishSchool(t);      // mid-water ambient school
+  drawFishSchool(t);        // mid-water ambient school
   drawKelp(t);
   drawCoral(t);
   drawAnemones(t);
   drawSeagrass(t);
   drawSeafloor(t);
+  drawSeafloorCaustics(t);  // light dapples on sand
 
-  for (const u of urchins)   drawSeaUrchin(u);
+  for (const u of urchins)    drawSeaUrchin(u);
   for (const sh of seahorses) drawSeahorse(sh, t);
-  for (const c of clams)     drawClam(c, t);
-  for (const c of crabs)     drawCrab(c, t);
+  for (const c of clams)      drawClam(c, t);
+  for (const c of crabs)      drawCrab(c, t);
 
   for (const b of state.bubbles) drawBubble(b);
 
@@ -2041,6 +2096,7 @@ function frame(now) {
   for (const f of sorted) drawFish(f,t);
 
   drawTurtle();
+  drawVignette();           // cinematic edge darkening — on top of everything
   updateHud(state.fish.length);
   requestAnimationFrame(frame);
 }
