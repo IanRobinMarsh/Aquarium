@@ -31,7 +31,8 @@ const sim = new Aquarium(W, H);
 
 // Seed a lively demo tank
 ['http','tls','dns','ssh','udp','http','http','tls','dns','ssh',
- 'udp','http','tls','other','http'].forEach(p =>
+ 'udp','http','tls','other','http','ftp','smtp','ntp','ftp','smtp',
+ 'ntp','ssh','http','dns'].forEach(p =>
   sim.on_flow(p, 2000 + Math.random() * 80000 | 0));
 
 function onResize() {
@@ -1262,6 +1263,9 @@ function drawFish(f, t) {
   else if (f.kind==='dns')        drawSardine(f, t, wb);
   else if (f.kind==='ssh')        drawBarracuda(f, t, wb);
   else if (f.kind==='tls')        drawAngelfish(f, t, wb);
+  else if (f.kind==='ftp')        drawLionfish(f, t, wb);
+  else if (f.kind==='smtp')       drawButterflyfish(f, t, wb);
+  else if (f.kind==='ntp')        drawPufferfish(f, t, wb);
   else                            drawGenericFish(f, t, wb);
 
   ctx.restore();
@@ -1605,6 +1609,244 @@ function drawGenericFish(f, t, wb) {
   ctx.restore();
 
   drawEye(s*0.52,-s*0.1,s*0.15,'#6688AA');
+}
+
+// ── FTP: lionfish — spiny, banded, dramatic ────────────────────────────────
+
+function drawLionfish(f, t, wb) {
+  const s = f.size, col = f.color, fin = f.fin_color;
+  const tw = wb * 0.06;
+
+  // Tail — rounded fan
+  ctx.save(); ctx.translate(-s*0.65,0); ctx.rotate(tw*1.1);
+  const tg = ctx.createLinearGradient(0,-s*0.62,0,s*0.62);
+  tg.addColorStop(0,lighter(fin,18)); tg.addColorStop(1,fin);
+  ctx.fillStyle=tg; ctx.globalAlpha=0.88;
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-s*0.28,-s*0.18,-s*0.72,-s*0.52,-s*0.8,-s*0.68);
+  ctx.bezierCurveTo(-s*0.65,-s*0.42,-s*0.28,-s*0.12,0,0);
+  ctx.bezierCurveTo(-s*0.28,s*0.12,-s*0.65,s*0.42,-s*0.8,s*0.68);
+  ctx.bezierCurveTo(-s*0.72,s*0.52,-s*0.28,s*0.18,0,0);
+  ctx.fill();
+  ctx.restore();
+
+  // Fan pectoral fins — spread wide like a lion's mane
+  ctx.save(); ctx.globalAlpha=0.55;
+  ctx.fillStyle=hexA(fin,0.65);
+  // Upper fan
+  ctx.beginPath();
+  ctx.moveTo(s*0.08,-s*0.2);
+  ctx.bezierCurveTo(-s*0.18,-s*0.78,-s*0.62,-s*1.12,-s*0.85,-s*0.88);
+  ctx.bezierCurveTo(-s*0.52,-s*0.68,-s*0.1,-s*0.38,s*0.08,-s*0.2);
+  ctx.fill();
+  // Lower fan
+  ctx.beginPath();
+  ctx.moveTo(s*0.08,s*0.2);
+  ctx.bezierCurveTo(-s*0.18,s*0.78,-s*0.62,s*1.12,-s*0.85,s*0.88);
+  ctx.bezierCurveTo(-s*0.52,s*0.68,-s*0.1,s*0.38,s*0.08,s*0.2);
+  ctx.fill();
+  // Fan rays
+  ctx.strokeStyle=darker(fin,20); ctx.lineWidth=0.8; ctx.globalAlpha=0.45;
+  for (let i=0; i<5; i++) {
+    const a = -Math.PI*0.62 + i*Math.PI*0.62/4;
+    ctx.beginPath();
+    ctx.moveTo(s*0.05,0);
+    ctx.lineTo(s*0.05+Math.cos(a)*s*0.9,Math.sin(a)*s*0.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s*0.05,0);
+    ctx.lineTo(s*0.05+Math.cos(-a)*s*0.9,Math.sin(-a)*s*0.9);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Body
+  const bg = ctx.createRadialGradient(-s*0.1,-s*0.2,0,0,0,s*0.92);
+  bg.addColorStop(0,lighter(col,42)); bg.addColorStop(0.38,col); bg.addColorStop(1,darker(col,32));
+  ctx.fillStyle=bg;
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.84,s*0.56,tw*0.05,0,Math.PI*2); ctx.fill();
+
+  // Red/white alternating body bands (clipped)
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.86,s*0.58,tw*0.05,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle='rgba(255,255,255,0.42)';
+  for (let i=0; i<4; i++) {
+    const bx = s*0.48 - i*s*0.34;
+    ctx.beginPath(); ctx.ellipse(bx,0,s*0.07,s*0.62,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // Dorsal spines — tall needle-like, with webbing membrane
+  ctx.save();
+  const nS=8;
+  const spineBase = -s*0.54;
+  ctx.fillStyle=hexA(fin,0.32);
+  for (let i=0; i<nS-1; i++) {
+    const x1 = spineBase + i*(s*0.98/(nS-1));
+    const x2 = spineBase + (i+1)*(s*0.98/(nS-1));
+    const h1 = s*(0.65+Math.sin(i/nS*Math.PI)*0.42);
+    const h2 = s*(0.65+Math.sin((i+1)/nS*Math.PI)*0.42);
+    ctx.globalAlpha=0.28;
+    ctx.beginPath();
+    ctx.moveTo(x1,-s*0.54); ctx.lineTo(x1-s*0.03,-(s*0.54+h1));
+    ctx.lineTo(x2-s*0.03,-(s*0.54+h2)); ctx.lineTo(x2,-s*0.54);
+    ctx.fill();
+  }
+  ctx.strokeStyle=darker(fin,8); ctx.lineWidth=1.4; ctx.globalAlpha=0.82;
+  for (let i=0; i<nS; i++) {
+    const sx = spineBase + i*(s*0.98/(nS-1));
+    const sh = s*(0.65+Math.sin(i/nS*Math.PI)*0.42);
+    ctx.beginPath(); ctx.moveTo(sx,-s*0.54); ctx.lineTo(sx-s*0.03,-(s*0.54+sh)); ctx.stroke();
+  }
+  ctx.restore();
+
+  drawEye(s*0.52,-s*0.1,s*0.17,'#880808');
+
+  // Mouth
+  ctx.strokeStyle=darker(col,42); ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(s*0.83,s*0.07,s*0.06,0,Math.PI*0.9); ctx.stroke();
+}
+
+// ── SMTP: butterflyfish — round, yellow, masked ────────────────────────────
+
+function drawButterflyfish(f, t, wb) {
+  const s = f.size, col = f.color, fin = f.fin_color;
+  const tw = wb * 0.12;
+
+  // Small forked tail
+  ctx.save(); ctx.translate(-s*0.54,0); ctx.rotate(tw*1.5);
+  ctx.fillStyle=hexA(fin,0.88);
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-s*0.2,-s*0.14,-s*0.55,-s*0.44,-s*0.62,-s*0.58);
+  ctx.bezierCurveTo(-s*0.5,-s*0.38,-s*0.2,-s*0.1,0,0);
+  ctx.bezierCurveTo(-s*0.2,s*0.1,-s*0.5,s*0.38,-s*0.62,s*0.58);
+  ctx.bezierCurveTo(-s*0.55,s*0.44,-s*0.2,s*0.14,0,0);
+  ctx.fill();
+  ctx.restore();
+
+  // Body — round disc
+  const bg = ctx.createRadialGradient(-s*0.1,-s*0.26,0,0,0,s*0.88);
+  bg.addColorStop(0,lighter(col,52)); bg.addColorStop(0.4,col); bg.addColorStop(1,darker(col,24));
+  ctx.fillStyle=bg;
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.7,s*0.8,tw*0.06,0,Math.PI*2); ctx.fill();
+
+  // Dark eye-mask band (clipped to body)
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.72,s*0.82,tw*0.06,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle='rgba(22,14,8,0.82)';
+  ctx.beginPath(); ctx.ellipse(s*0.32,0,s*0.14,s*0.86,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Subtle chevron pattern on body
+  ctx.save(); ctx.globalAlpha=0.14;
+  ctx.strokeStyle='rgba(120,80,0,0.7)'; ctx.lineWidth=1.4;
+  for (let i=0; i<4; i++) {
+    const bx = -s*0.22+i*s*0.2;
+    ctx.beginPath();
+    ctx.moveTo(bx,-s*0.6); ctx.lineTo(bx-s*0.06,0); ctx.lineTo(bx,s*0.6);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Dorsal fin
+  ctx.save(); ctx.globalAlpha=0.8;
+  const dg = ctx.createLinearGradient(0,-s*0.78,0,-s*1.18);
+  dg.addColorStop(0,col); dg.addColorStop(1,lighter(fin,24));
+  ctx.fillStyle=dg;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.24,-s*0.78);
+  ctx.bezierCurveTo(-s*0.08,-s*1.18,s*0.22,-s*1.14,s*0.36,-s*0.78);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Pectoral
+  ctx.fillStyle=hexA(fin,0.42);
+  ctx.beginPath(); ctx.ellipse(s*0.1,s*0.12,s*0.3,s*0.16,-0.44+tw*0.5,0,Math.PI*2); ctx.fill();
+
+  // Anal fin
+  ctx.save(); ctx.globalAlpha=0.72; ctx.fillStyle=fin;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.1,s*0.76); ctx.bezierCurveTo(-s*0.06,s*1.1,s*0.2,s*1.06,s*0.28,s*0.76);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Characteristic ocellus (false eye-spot near tail)
+  ctx.save();
+  ctx.fillStyle='rgba(18,12,5,0.72)';
+  ctx.beginPath(); ctx.arc(-s*0.3,-s*0.08,s*0.1,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,220,80,0.55)';
+  ctx.beginPath(); ctx.arc(-s*0.3,-s*0.08,s*0.055,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  drawEye(s*0.44,-s*0.14,s*0.17,'#1A1005');
+
+  // Snout
+  ctx.strokeStyle=darker(col,38); ctx.lineWidth=1.1;
+  ctx.beginPath(); ctx.arc(s*0.76,s*0.05,s*0.055,0,Math.PI*0.82); ctx.stroke();
+}
+
+// ── NTP: pufferfish — round, inflated, spiny ──────────────────────────────
+
+function drawPufferfish(f, t, wb) {
+  const s = f.size, col = f.color, fin = f.fin_color;
+  const puff = 0.84 + Math.sin(t*1.3 + f.wobble)*0.06;
+  const tw = wb * 0.05;
+
+  // Tiny tail
+  ctx.save(); ctx.translate(-s*0.76,0); ctx.rotate(tw*1.8);
+  ctx.fillStyle=hexA(fin,0.72);
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(-s*0.32,-s*0.24); ctx.lineTo(-s*0.32,s*0.24); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Round inflated body
+  const bg = ctx.createRadialGradient(-s*0.24,-s*0.3,0,0,0,s*puff);
+  bg.addColorStop(0,lighter(col,56)); bg.addColorStop(0.4,col); bg.addColorStop(1,darker(col,30));
+  ctx.fillStyle=bg;
+  ctx.beginPath(); ctx.arc(0,0,s*puff,0,Math.PI*2); ctx.fill();
+
+  // Lighter belly patch
+  ctx.save(); ctx.globalAlpha=0.35;
+  ctx.fillStyle='rgba(255,255,220,0.7)';
+  ctx.beginPath(); ctx.ellipse(s*0.06,s*0.3,s*0.5,s*0.28,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Spines around body (deterministic, no random)
+  ctx.save(); ctx.fillStyle=darker(col,20); ctx.globalAlpha=0.7;
+  const nSp=24;
+  for (let i=0; i<nSp; i++) {
+    const a = (i/nSp)*Math.PI*2;
+    if (Math.cos(a) > 0.65) continue; // skip face
+    const r = s*puff;
+    const px=Math.cos(a)*r, py=Math.sin(a)*r;
+    const sl = s*(0.08+0.04*Math.sin(i*1.9+f.wobble));
+    ctx.beginPath();
+    ctx.moveTo(px,py);
+    ctx.lineTo(px+Math.cos(a)*sl, py+Math.sin(a)*sl);
+    ctx.lineTo(px+Math.cos(a+0.24)*sl*0.38, py+Math.sin(a+0.24)*sl*0.38);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // Tiny dorsal fin
+  ctx.save(); ctx.globalAlpha=0.62; ctx.fillStyle=fin;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.1,-s*puff*0.9);
+  ctx.bezierCurveTo(-s*0.02,-s*(puff*0.9+0.28),s*0.14,-s*(puff*0.9+0.22),s*0.22,-s*puff*0.86);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Tiny pectoral
+  ctx.fillStyle=hexA(fin,0.48);
+  ctx.beginPath(); ctx.ellipse(s*0.36,s*0.14,s*0.22,s*0.12,-0.18+tw,0,Math.PI*2); ctx.fill();
+
+  drawEye(s*0.6,-s*0.16,s*0.2,'#182808');
+
+  // Round mouth
+  ctx.strokeStyle=darker(col,38); ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(s*0.9,s*0.06,s*0.052,0,Math.PI*2); ctx.stroke();
 }
 
 // ── UDP: detailed jellyfish ────────────────────────────────────────────────
