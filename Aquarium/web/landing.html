@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquarium — Network Traffic Visualiser</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --deep:    #010C18;
+  --mid:     #031828;
+  --accent:  #3ABFEF;
+  --accent2: #7B5EFF;
+  --text:    rgba(200,230,255,0.88);
+  --muted:   rgba(160,205,240,0.55);
+  --card:    rgba(2,18,36,0.65);
+  --border:  rgba(60,160,220,0.18);
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--deep);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ── Animated ocean background ── */
+.ocean-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(30,90,160,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 70%, rgba(20,60,120,0.14) 0%, transparent 55%),
+    linear-gradient(180deg, #01111F 0%, #020E1C 18%, #031624 50%, #020A14 100%);
+  animation: bgShift 18s ease-in-out infinite alternate;
+}
+@keyframes bgShift {
+  0%   { filter: hue-rotate(0deg) brightness(1); }
+  100% { filter: hue-rotate(8deg) brightness(1.06); }
+}
+
+/* Light shafts */
+.shafts {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+}
+.shaft {
+  position: absolute; top: 0;
+  width: 2px; height: 55vh;
+  background: linear-gradient(180deg, rgba(140,225,255,0.09) 0%, transparent 100%);
+  transform-origin: top center;
+  animation: shaftSway var(--dur) ease-in-out infinite alternate;
+}
+.shaft:nth-child(1)  { left:8%;  width:38px; --dur:7s;  animation-delay:-1s;  transform:rotate(-3deg); }
+.shaft:nth-child(2)  { left:18%; width:28px; --dur:9s;  animation-delay:-3s;  transform:rotate(2deg);  }
+.shaft:nth-child(3)  { left:31%; width:44px; --dur:11s; animation-delay:-5s;  transform:rotate(-1deg); }
+.shaft:nth-child(4)  { left:47%; width:32px; --dur:8s;  animation-delay:-2s;  transform:rotate(4deg);  }
+.shaft:nth-child(5)  { left:62%; width:40px; --dur:10s; animation-delay:-4s;  transform:rotate(-2deg); }
+.shaft:nth-child(6)  { left:75%; width:26px; --dur:7.5s;animation-delay:-6s;  transform:rotate(1deg);  }
+.shaft:nth-child(7)  { left:88%; width:36px; --dur:9.5s;animation-delay:-0.5s;transform:rotate(-4deg); }
+@keyframes shaftSway {
+  from { transform: rotate(var(--rot, -3deg)); opacity: 0.7; }
+  to   { transform: rotate(calc(var(--rot, -3deg) + 5deg)); opacity: 1; }
+}
+
+/* Bubbles */
+.bubbles {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.bubble {
+  position: absolute; bottom: -20px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.55), rgba(100,200,255,0.08));
+  border: 1px solid rgba(140,210,255,0.22);
+  animation: riseUp var(--dur) ease-in infinite;
+  animation-delay: var(--delay);
+}
+.bubble:nth-child(1)  { left:5%;  width:10px; height:10px; --dur:8s;  --delay:0s;   }
+.bubble:nth-child(2)  { left:14%; width:6px;  height:6px;  --dur:11s; --delay:2s;   }
+.bubble:nth-child(3)  { left:23%; width:14px; height:14px; --dur:9s;  --delay:1s;   }
+.bubble:nth-child(4)  { left:35%; width:8px;  height:8px;  --dur:13s; --delay:4s;   }
+.bubble:nth-child(5)  { left:47%; width:12px; height:12px; --dur:10s; --delay:0.5s; }
+.bubble:nth-child(6)  { left:56%; width:7px;  height:7px;  --dur:8.5s;--delay:3s;   }
+.bubble:nth-child(7)  { left:67%; width:16px; height:16px; --dur:12s; --delay:1.5s; }
+.bubble:nth-child(8)  { left:78%; width:9px;  height:9px;  --dur:9.5s;--delay:5s;   }
+.bubble:nth-child(9)  { left:88%; width:11px; height:11px; --dur:11s; --delay:2.5s; }
+.bubble:nth-child(10) { left:93%; width:5px;  height:5px;  --dur:7s;  --delay:0.8s; }
+@keyframes riseUp {
+  0%   { transform: translateY(0)      translateX(0)    opacity 0;   opacity: 0; }
+  5%   { opacity: 0.7; }
+  50%  { transform: translateY(-45vh)  translateX(12px); }
+  100% { transform: translateY(-105vh) translateX(-8px); opacity: 0; }
+}
+
+/* ── Page layout ── */
+.page {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 0 20px 80px;
+}
+
+/* ── Hero ── */
+.hero {
+  margin-top: clamp(60px, 10vh, 110px);
+  text-align: center;
+  max-width: 760px;
+}
+
+.hero-icon {
+  font-size: 52px;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 0 18px rgba(60,190,240,0.5));
+  animation: iconFloat 4s ease-in-out infinite;
+}
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+.hero h1 {
+  font-size: clamp(42px, 7vw, 76px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  background: linear-gradient(135deg, #A8E6FF 0%, #4ABFEF 35%, #7B5EFF 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+  text-shadow: none;
+  filter: drop-shadow(0 0 24px rgba(74,191,239,0.28));
+}
+
+.hero .tagline {
+  font-size: clamp(16px, 2.2vw, 21px);
+  color: var(--muted);
+  margin-bottom: 22px;
+  letter-spacing: 0.01em;
+}
+
+.hero .desc {
+  font-size: clamp(14px, 1.5vw, 16px);
+  color: rgba(170,215,250,0.68);
+  line-height: 1.75;
+  max-width: 580px;
+  margin: 0 auto 36px;
+}
+
+/* ── Tech badges ── */
+.badges {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin-bottom: 40px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 13px;
+  background: rgba(2,18,40,0.7);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  color: rgba(160,215,255,0.8);
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(6px);
+}
+.badge .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+
+/* ── CTAs ── */
+.ctas {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
+  margin-bottom: 72px;
+}
+
+.btn-launch {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 14px 36px;
+  background: linear-gradient(135deg, #1A6A9A, #2A4ABF);
+  border: 1px solid rgba(74,191,239,0.45);
+  border-radius: 10px;
+  color: rgba(220,240,255,0.95);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  box-shadow: 0 0 24px rgba(42,100,200,0.35), 0 2px 8px rgba(0,0,0,0.4);
+}
+.btn-launch:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 42px rgba(74,191,239,0.5), 0 4px 16px rgba(0,0,0,0.5);
+  border-color: rgba(74,191,239,0.75);
+}
+.btn-launch .arrow { font-size: 18px; transition: transform 0.18s; }
+.btn-launch:hover .arrow { transform: translateX(4px); }
+
+.btn-gh {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 26px;
+  background: rgba(2,14,28,0.6);
+  border: 1px solid rgba(80,160,220,0.28);
+  border-radius: 10px;
+  color: rgba(160,210,255,0.78);
+  font-size: 14px;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(8px);
+  transition: transform 0.18s, border-color 0.18s, color 0.18s;
+}
+.btn-gh:hover {
+  transform: translateY(-2px);
+  border-color: rgba(80,160,220,0.55);
+  color: rgba(190,225,255,0.95);
+}
+.btn-gh svg { opacity: 0.7; }
+
+/* ── Feature cards ── */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  width: 100%; max-width: 900px;
+  margin-bottom: 56px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 22px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(60,160,220,0.38);
+  box-shadow: 0 8px 30px rgba(0,20,50,0.5);
+}
+.card-icon { font-size: 28px; margin-bottom: 12px; }
+.card h3 {
+  font-size: 15px; font-weight: 600;
+  color: rgba(190,225,255,0.9);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.card p {
+  font-size: 13px; line-height: 1.65;
+  color: var(--muted);
+}
+
+/* ── Protocol table ── */
+.species {
+  width: 100%; max-width: 680px;
+  margin-bottom: 56px;
+}
+.species h2 {
+  font-size: 18px; font-weight: 600;
+  color: rgba(180,220,255,0.8);
+  text-align: center;
+  margin-bottom: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.species-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: rgba(2,14,30,0.55);
+  border: 1px solid rgba(50,130,190,0.14);
+  border-radius: 9px;
+  font-size: 13px;
+}
+.sp-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  box-shadow: 0 0 5px currentColor;
+}
+.sp-proto { color: rgba(160,215,255,0.85); font-family: 'Courier New', monospace; font-size: 12px; }
+.sp-arrow { color: rgba(100,160,210,0.5); margin: 0 2px; }
+.sp-fish  { color: rgba(140,195,240,0.65); font-style: italic; }
+
+/* ── Footer ── */
+footer {
+  position: relative; z-index: 1;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(100,150,190,0.45);
+  padding: 20px;
+  border-top: 1px solid rgba(50,120,180,0.1);
+  width: 100%; max-width: 900px;
+}
+footer a { color: rgba(100,170,220,0.6); text-decoration: none; }
+footer a:hover { color: rgba(140,200,240,0.85); }
+</style>
+</head>
+<body>
+
+<div class="ocean-bg"></div>
+
+<div class="shafts">
+  <div class="shaft"></div><div class="shaft"></div><div class="shaft"></div>
+  <div class="shaft"></div><div class="shaft"></div><div class="shaft"></div>
+  <div class="shaft"></div>
+</div>
+
+<div class="bubbles">
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div>
+</div>
+
+<div class="page">
+
+  <section class="hero">
+    <div class="hero-icon">🐠</div>
+    <h1>Aquarium</h1>
+    <p class="tagline">Your network traffic, alive.</p>
+    <p class="desc">
+      Live network flows visualised as an animated deep-sea aquarium.
+      Each protocol is a distinct species — clownfish for HTTP, barracuda for SSH,
+      jellyfish for UDP — swimming through coral, kelp and ambient sea life.
+    </p>
+
+    <div class="badges">
+      <span class="badge"><span class="dot" style="background:#CE422B"></span>Rust</span>
+      <span class="badge"><span class="dot" style="background:#654FF0"></span>WebAssembly</span>
+      <span class="badge"><span class="dot" style="background:#3ABFEF"></span>Canvas 2D</span>
+      <span class="badge"><span class="dot" style="background:#F5A623"></span>libpcap</span>
+      <span class="badge"><span class="dot" style="background:#4CAF50"></span>WebSocket</span>
+    </div>
+
+    <div class="ctas">
+      <a href="app/" class="btn-launch">
+        Launch Aquarium <span class="arrow">→</span>
+      </a>
+      <a href="https://github.com/IanRobinMarsh/Aquarium" class="btn-gh" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+            0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+            -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+            .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+            -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
+            .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
+            .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
+            0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="card">
+      <div class="card-icon">🦈</div>
+      <h3>Protocol Species</h3>
+      <p>Nine distinct fish species map to network protocols — HTTP clownfish, SSH barracuda, FTP lionfish, NTP pufferfish and more. Flow volume sets size; rate sets speed.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🐢</div>
+      <h3>Ambient Sea Life</h3>
+      <p>Sea turtles, manta rays, sharks, a vast whale shark silhouette, fish schools, crabs, seahorses, bioluminescent particles and a richly detailed coral floor.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📡</div>
+      <h3>Live Capture</h3>
+      <p>A native Rust daemon uses libpcap to stream real flows over WebSocket. Without the daemon the aquarium runs in demo mode with seeded traffic.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>60 fps, Zero Bundler</h3>
+      <p>Rust compiled to WebAssembly handles packet parsing and fish lifecycle. The Canvas 2D renderer runs at 60 fps as a plain ES module — no build step.</p>
+    </div>
+  </section>
+
+  <section class="species">
+    <h2>Protocol → Species</h2>
+    <div class="species-grid">
+      <div class="species-item">
+        <span class="sp-dot" style="color:#FF6B35;background:#FF6B35"></span>
+        <span class="sp-proto">HTTP</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Clownfish</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#4A90D9;background:#4A90D9"></span>
+        <span class="sp-proto">SSH</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Barracuda</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#9B59B6;background:#9B59B6"></span>
+        <span class="sp-proto">TLS/QUIC</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Angelfish</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#A8E6CF;background:#A8E6CF"></span>
+        <span class="sp-proto">DNS</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Sardine</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#E8F5A3;background:#E8F5A3"></span>
+        <span class="sp-proto">UDP</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Jellyfish</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#CC3820;background:#CC3820"></span>
+        <span class="sp-proto">FTP</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Lionfish</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#F5C518;background:#F5C518"></span>
+        <span class="sp-proto">SMTP</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Butterflyfish</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#7CB84A;background:#7CB84A"></span>
+        <span class="sp-proto">NTP</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Pufferfish</span>
+      </div>
+      <div class="species-item">
+        <span class="sp-dot" style="color:#E8F5A3;background:#E8F5A3"></span>
+        <span class="sp-proto">ICMP</span>
+        <span class="sp-arrow">→</span>
+        <span class="sp-fish">Bubbles</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Built by <a href="https://ianmarsh.org" target="_blank">Ian Marsh</a> &nbsp;·&nbsp;
+  Rust + WebAssembly + Canvas 2D &nbsp;·&nbsp;
+  <a href="https://github.com/IanRobinMarsh/Aquarium" target="_blank">Source on GitHub</a>
+</footer>
+
+</body>
+</html>

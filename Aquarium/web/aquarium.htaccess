@@ -1,0 +1,32 @@
+# Aquarium — static app, bypass WordPress rewrites
+
+# Serve .wasm with correct MIME type (required for WebAssembly)
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+</IfModule>
+
+# Serve .js as module-compatible type
+<IfModule mod_mime.c>
+  AddType text/javascript .js .mjs
+</IfModule>
+
+# Enable CORS for WASM / ES modules (same-origin is fine, but belt-and-braces)
+<IfModule mod_headers.c>
+  <FilesMatch "\.(wasm|js|mjs)$">
+    Header set Cross-Origin-Opener-Policy "same-origin"
+    Header set Cross-Origin-Embedder-Policy "require-corp"
+  </FilesMatch>
+</IfModule>
+
+# Do NOT let WordPress swallow requests into this directory
+<IfModule mod_rewrite.c>
+  RewriteEngine Off
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType application/wasm          "access plus 1 week"
+  ExpiresByType text/javascript           "access plus 1 day"
+  ExpiresByType text/html                 "access plus 1 hour"
+</IfModule>
