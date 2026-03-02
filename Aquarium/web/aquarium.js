@@ -43,6 +43,25 @@ function onResize() {
 }
 window.addEventListener('resize', onResize);
 
+// ── Toggle state ───────────────────────────────────────────────────────────
+
+let showCreatures = true;
+let showTraffic   = true;
+
+function setupToggles() {
+  const btnC = document.getElementById('btn-creatures');
+  const btnT = document.getElementById('btn-traffic');
+  btnC.addEventListener('click', () => {
+    showCreatures = !showCreatures;
+    btnC.className = 'tog ' + (showCreatures ? 'on' : 'off');
+  });
+  btnT.addEventListener('click', () => {
+    showTraffic = !showTraffic;
+    btnT.className = 'tog ' + (showTraffic ? 'on' : 'off');
+  });
+}
+setupToggles();
+
 // ── WebSocket ──────────────────────────────────────────────────────────────
 
 let pktCount = 0;
@@ -65,6 +84,9 @@ connectWS();
 // ── Scene elements ─────────────────────────────────────────────────────────
 
 let rocks=[], seagrass=[], kelp=[], anemones=[], coralDefs=[], starfish=[], plankton=[], urchins=[], clams=[], crabs=[], marineSnow=[], seahorses=[], bioParticles=[];
+
+// Ambient fish school — must be declared before buildScene() is called
+const fishSchool = { cx:0, cy:0, vx:0.38, vy:0.04, dir:0, turnT:5, speed:0.36, members:[] };
 
 function buildScene() {
   // Rocks
@@ -237,7 +259,6 @@ function resetShark() {
 }
 
 // Ambient fish school (decorative mid-water silhouettes)
-const fishSchool = { cx:0, cy:0, vx:0.38, vy:0.04, dir:0, turnT:5, speed:0.36, members:[] };
 function buildFishSchool() {
   fishSchool.cx    = W*(0.25+Math.random()*0.5);
   fishSchool.cy    = H*(0.22+Math.random()*0.44);
@@ -2069,11 +2090,9 @@ function frame(now) {
 
   drawBackground(t);
   drawDepthHaze();
-  drawWhaleshark();         // faint deep silhouette, behind everything
   drawMarineSnow();
   drawBioParticles(t);
   drawPlankton();
-  drawFishSchool(t);        // mid-water ambient school
   drawKelp(t);
   drawCoral(t);
   drawAnemones(t);
@@ -2081,21 +2100,26 @@ function frame(now) {
   drawSeafloor(t);
   drawSeafloorCaustics(t);  // light dapples on sand
 
-  for (const u of urchins)    drawSeaUrchin(u);
-  for (const sh of seahorses) drawSeahorse(sh, t);
-  for (const c of clams)      drawClam(c, t);
-  for (const c of crabs)      drawCrab(c, t);
+  for (const u of urchins) drawSeaUrchin(u);
+  for (const c of clams)   drawClam(c, t);
 
-  for (const b of state.bubbles) drawBubble(b);
+  if (showCreatures) {
+    drawWhaleshark();         // faint deep silhouette, behind everything
+    drawFishSchool(t);        // mid-water ambient school
+    for (const sh of seahorses) drawSeahorse(sh, t);
+    for (const c of crabs)      drawCrab(c, t);
+    drawManta();
+    drawShark();
+  }
 
-  drawManta();
-  drawShark();
+  if (showTraffic) {
+    for (const b of state.bubbles) drawBubble(b);
+    const sorted = [...state.fish].sort((a,b)=>b.size-a.size);
+    for (const f of sorted) drawFish(f,t);
+  }
 
-  // Depth sort: larger fish behind smaller
-  const sorted = [...state.fish].sort((a,b)=>b.size-a.size);
-  for (const f of sorted) drawFish(f,t);
+  if (showCreatures) drawTurtle();
 
-  drawTurtle();
   drawVignette();           // cinematic edge darkening — on top of everything
   updateHud(state.fish.length);
   requestAnimationFrame(frame);

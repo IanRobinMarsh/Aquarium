@@ -30,11 +30,32 @@
   }
 
   #status {
-    bottom: 14px; left: 16px;
+    bottom: 54px; left: 16px;
     padding: 6px 12px;
     font: 11px/1.5 'Courier New', monospace;
     color: rgba(140,205,255,0.7);
   }
+
+  #toggles {
+    bottom: 14px; left: 16px;
+    padding: 5px 10px;
+    display: flex; gap: 8px;
+    pointer-events: auto;
+  }
+
+  .tog {
+    background: none;
+    border: 1px solid rgba(80,170,230,0.35);
+    border-radius: 6px;
+    padding: 3px 11px;
+    font: 11px 'Courier New', monospace;
+    color: rgba(140,205,255,0.78);
+    cursor: pointer;
+    transition: opacity 0.2s, border-color 0.2s;
+    pointer-events: auto;
+  }
+  .tog.on  { opacity: 1; }
+  .tog.off { opacity: 0.32; border-color: rgba(80,170,230,0.14); }
 
   .dot {
     display: inline-block;
@@ -71,6 +92,11 @@
 <div id="status" class="panel">
   <span class="dot" id="ws-dot" style="background:#555"></span>
   <span id="ws-label">connecting…</span>
+</div>
+
+<div id="toggles" class="panel">
+  <button id="btn-creatures" class="tog on">creatures</button>
+  <button id="btn-traffic"   class="tog on">traffic</button>
 </div>
 
 <div id="legend" class="panel">
