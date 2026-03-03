@@ -27,6 +27,14 @@ const ctx    = canvas.getContext('2d');
 let W = canvas.width  = window.innerWidth;
 let H = canvas.height = window.innerHeight;
 
+// Global scale factor — keeps fish / flora proportional on all screens.
+// Reference: ~900 px on the short edge = scale 1.0.
+let S = 1;
+function computeScale() {
+  S = Math.max(0.38, Math.min(Math.min(W, H) / 900, 1.2));
+}
+computeScale();
+
 const sim = new Aquarium(W, H);
 
 // Seed a lively demo tank
@@ -38,6 +46,7 @@ const sim = new Aquarium(W, H);
 function onResize() {
   W = canvas.width  = window.innerWidth;
   H = canvas.height = window.innerHeight;
+  computeScale();
   sim.resize(W, H);
   buildScene();
 }
@@ -93,7 +102,7 @@ function buildScene() {
   rocks = [];
   for (let i=0; i<Math.max(5,W/160|0); i++) {
     const x = (i + 0.5 + (Math.random()-0.5)*0.45) * (W / Math.max(5,W/160|0));
-    rocks.push({ x, rw: 28+Math.random()*55, rh: 10+Math.random()*22,
+    rocks.push({ x, rw: (28+Math.random()*55)*S, rh: (10+Math.random()*22)*S,
       col: ['#152030','#1a2a38','#0e1e2e','#1d3040'][Math.random()*4|0] });
   }
 
@@ -102,8 +111,8 @@ function buildScene() {
   for (let i=0; i<Math.max(10,W/70|0); i++) {
     const x = Math.random()*W;
     seagrass.push({ x, blades: Array.from({length:3+Math.random()*5|0}, ()=>({
-      dx: (Math.random()-0.5)*22,
-      h:  18+Math.random()*38,
+      dx: (Math.random()-0.5)*22*S,
+      h:  (18+Math.random()*38)*S,
       phase: Math.random()*Math.PI*2,
       col: Math.random()<0.5 ? '#1E7A32' : '#28923C',
     }))});
@@ -124,8 +133,8 @@ function buildScene() {
   for (let i=0; i<Math.max(3,W/270|0); i++) {
     anemones.push({ x: 80+Math.random()*(W-160),
       tents: 8+Math.random()*7|0,
-      baseH: 14+Math.random()*18,
-      tentH: 22+Math.random()*32,
+      baseH: (14+Math.random()*18)*S,
+      tentH: (22+Math.random()*32)*S,
       col: ['#D94F8A','#E87030','#8B4BC9','#D9C030','#30A0C9'][Math.random()*5|0],
       phase: Math.random()*Math.PI*2 });
   }
@@ -145,7 +154,7 @@ function buildScene() {
   starfish = [];
   for (let i=0; i<Math.max(3,W/240|0); i++) {
     starfish.push({ x: 40+Math.random()*(W-80),
-      r: 8+Math.random()*14,
+      r: (8+Math.random()*14)*S,
       col: ['#D85040','#D89030','#8850A8','#D84060'][Math.random()*4|0],
       rot: Math.random()*Math.PI*2 });
   }
@@ -174,7 +183,7 @@ function buildScene() {
   urchins = [];
   for (let i=0; i<Math.max(4,W/210|0); i++) {
     urchins.push({ x: 25+Math.random()*(W-50),
-      r: 7+Math.random()*9, spines: 14+(Math.random()*8|0),
+      r: (7+Math.random()*9)*S, spines: 14+(Math.random()*8|0),
       col: ['#3A1A5A','#1A3A5A','#5A1A1A','#1A4A3A'][Math.random()*4|0] });
   }
 
@@ -182,7 +191,7 @@ function buildScene() {
   clams = [];
   for (let i=0; i<Math.max(3,W/280|0); i++) {
     clams.push({ x: 40+Math.random()*(W-80),
-      w: 11+Math.random()*16, phase: Math.random()*Math.PI*2,
+      w: (11+Math.random()*16)*S, phase: Math.random()*Math.PI*2,
       col: ['#8A6A4A','#6A8A7A','#4A6A8A','#7A5A8A'][Math.random()*4|0] });
   }
 
@@ -191,7 +200,7 @@ function buildScene() {
   for (let i=0; i<Math.max(2,W/380|0); i++) {
     crabs.push({ x: 80+Math.random()*(W-160),
       vx: (Math.random()-0.5)*0.22, phase: Math.random()*Math.PI*2,
-      r: 11+Math.random()*10,
+      r: (11+Math.random()*10)*S,
       col: ['#8A3A1A','#A04828','#6A2210'][Math.random()*3|0] });
   }
 
@@ -201,8 +210,8 @@ function buildScene() {
     const sg = seagrass[Math.random()*seagrass.length|0];
     seahorses.push({
       x: sg ? sg.x+(Math.random()-0.5)*35 : 100+Math.random()*(W-200),
-      y: H-(48+Math.random()*28),
-      size: 15+Math.random()*9,
+      y: H-(48+Math.random()*28)*S,
+      size: (15+Math.random()*9)*S,
       col: ['#C87820','#3A8870','#9A3A80'][Math.random()*3|0],
       phase: Math.random()*Math.PI*2,
       facing: Math.random()<0.5 ? 1 : -1,
@@ -218,7 +227,7 @@ function buildScene() {
     vy: (Math.random()-0.5)*0.03,
     ph: Math.random()*Math.PI*2,
     col: Math.random()<0.6 ? '#00D8B0' : '#3878FF',
-    gr: 9+Math.random()*14,
+    gr: (9+Math.random()*14)*S,
   }));
 
   // Ambient fish school
@@ -268,10 +277,10 @@ function buildFishSchool() {
   fishSchool.vy    = Math.sin(fishSchool.dir)*fishSchool.speed;
   fishSchool.turnT = 5+Math.random()*9;
   fishSchool.members = Array.from({length:28}, ()=>({
-    ox: (Math.random()-0.5)*112, oy: (Math.random()-0.5)*48,
-    px: fishSchool.cx+(Math.random()-0.5)*112,
-    py: fishSchool.cy+(Math.random()-0.5)*48,
-    ph: Math.random()*Math.PI*2, sz: 4.5+Math.random()*3,
+    ox: (Math.random()-0.5)*112*S, oy: (Math.random()-0.5)*48*S,
+    px: fishSchool.cx+(Math.random()-0.5)*112*S,
+    py: fishSchool.cy+(Math.random()-0.5)*48*S,
+    ph: Math.random()*Math.PI*2, sz: (4.5+Math.random()*3)*S,
   }));
 }
 
@@ -641,18 +650,19 @@ function drawTubeCoral(c,t) {
 // ── Bubbles ────────────────────────────────────────────────────────────────
 
 function drawBubble(b) {
-  const wx = Math.sin(b.t*1.5+b.wobble)*4;
+  const r = b.r * S;
+  const wx = Math.sin(b.t*1.5+b.wobble)*4*S;
   ctx.save(); ctx.translate(b.x+wx, b.y);
-  const g = ctx.createRadialGradient(-b.r*0.3,-b.r*0.35,b.r*0.05,0,0,b.r);
+  const g = ctx.createRadialGradient(-r*0.3,-r*0.35,r*0.05,0,0,r);
   g.addColorStop(0,'rgba(255,255,255,0.88)');
   g.addColorStop(0.28,'rgba(175,228,255,0.28)');
   g.addColorStop(1,'rgba(80,160,220,0.02)');
   ctx.fillStyle=g; ctx.strokeStyle='rgba(175,228,255,0.48)'; ctx.lineWidth=0.8;
   ctx.globalAlpha=0.38;
-  ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
   // Specular
   ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.globalAlpha=0.28;
-  ctx.beginPath(); ctx.ellipse(-b.r*0.28,-b.r*0.32,b.r*0.22,b.r*0.11,-0.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-r*0.28,-r*0.32,r*0.22,r*0.11,-0.5,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 
@@ -882,7 +892,7 @@ function _drawMantaWings(s,flap,col) {
 
 function drawManta() {
   if (manta.delay>0) return;
-  const {x,y,flip,t}=manta, s=52;
+  const {x,y,flip,t}=manta, s=52*S;
   ctx.save(); ctx.translate(x,y); ctx.scale(flip,1);
   const flap=Math.sin(t*0.88)*0.14;
   // Wing shadow
@@ -1099,7 +1109,7 @@ function tickWhaleshark(dt) {
 }
 function drawWhaleshark() {
   if (whaleshark.delay>0) return;
-  const {x,y,flip,t}=whaleshark, s=200;
+  const {x,y,flip,t}=whaleshark, s=200*S;
   ctx.save();
   ctx.translate(x,y); ctx.scale(flip,1);
   ctx.globalAlpha=0.14;
@@ -1172,7 +1182,7 @@ function tickShark(dt) {
 
 function drawShark() {
   if (shark.delay>0) return;
-  const {x,y,flip,t}=shark, s=75;
+  const {x,y,flip,t}=shark, s=75*S;
   ctx.save();
   ctx.translate(x,y); ctx.scale(flip,1);
 
@@ -1318,12 +1328,12 @@ function drawFish(f, t) {
 
   // Tilt slightly with vertical motion
   ctx.rotate(Math.atan2(f.vy, Math.abs(f.vx))*0.45*f.facing);
-  ctx.scale(f.facing, 1);
+  ctx.scale(f.facing * S, S);
 
-  // Subtle body glow
+  // Subtle body glow (shadowBlur is in screen-px, not transform-space)
   if (f.opacity>0.5) {
     ctx.save();
-    glow(f.color, f.size*0.9);
+    glow(f.color, f.size*0.9*S);
     ctx.globalAlpha=0.1*f.opacity;
     ctx.fillStyle=f.color;
     ctx.beginPath(); ctx.arc(0,0,f.size*0.55,0,Math.PI*2); ctx.fill();
@@ -1672,7 +1682,7 @@ function drawGenericFish(f, t, wb) {
   const glowPhase = 0.62 + Math.sin(t*2.4 + f.wobble) * 0.28;
   const px = -s*0.06, py = s*0.32;
   ctx.save();
-  glow('rgba(100,255,160,1)', s * 1.4);
+  glow('rgba(100,255,160,1)', s * 1.4 * S);
   ctx.globalAlpha = glowPhase * 0.6;
   ctx.fillStyle = 'rgba(140,255,190,0.85)';
   ctx.beginPath(); ctx.arc(px, py, s*0.1, 0, Math.PI*2); ctx.fill();
@@ -1934,7 +1944,7 @@ function drawJellyfish(f, t, wb) {
 
   // Outer glow halo
   ctx.save();
-  glow(col, s*2.5); ctx.globalAlpha=0.07;
+  glow(col, s*2.5*S); ctx.globalAlpha=0.07;
   ctx.fillStyle=col;
   ctx.beginPath(); ctx.ellipse(0,0,r*1.22,r*flat*1.22,0,Math.PI,0); ctx.fill();
   clearGlow();
@@ -1999,7 +2009,7 @@ function tickTurtle(dt) {
 
 function drawTurtle() {
   const {x,y,flip,t} = turtle;
-  const s=32;
+  const s=32*S;
   ctx.save();
   ctx.translate(x,y); ctx.scale(flip,1);
 
